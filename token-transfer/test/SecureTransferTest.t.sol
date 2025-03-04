@@ -12,17 +12,39 @@ contract Attacker {
     }
 }
 
+contract ReentrancyAttacker {
+    address private token;
+    address private victim;
+    uint256 private attackAmount;
+
+    function attack(address _token, address _victim) external {
+        token = _token;
+        victim = _victim;
+        attackAmount = IERC20(_token).balanceOf(_victim);
+        // Try to perform the attack
+        IERC20(_token).transferFrom(victim, address(this), attackAmount);
+    }
+
+    // Attempting reentrancy through the receive function
+    receive() external payable {
+        if (address(token).balance > 0) {
+            IERC20(token).transferFrom(victim, address(this), attackAmount);
+        }
+    }
+}
+
 contract SecureTransferTest is Test {
     SecureToken token;
     Attacker attacker;
+    ReentrancyAttacker reentrancyAttacker;
     address Jalaj;
     address Professor;
 
     function setUp() public {
         token = new SecureToken();
         attacker = new Attacker();
-        Jalaj = address(0x1);
-        Professor = address(0x2);
+                        Jalaj = address(0x1);
+                        Professor = address(0x2);
          /**
      * @dev See {IERC20-transfer}.
      *
